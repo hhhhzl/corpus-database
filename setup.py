@@ -39,7 +39,7 @@ setup(name=PROJECT_NAME,
           'markupsafe',
           'python-engineio==4.4.0',
           'bidict',
-          'pymysql-1.0.3'
+          'pymysql==1.0.3'
       ],
       zip_safe=False
       )
