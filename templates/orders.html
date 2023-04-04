@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en"> 
+<head>
+    <title>科技知识语料库管理</title>
+    
+    <!-- Meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <meta name="description" content="Portal - Bootstrap 5 Admin Dashboard Template For Developers">
+    <meta name="author" content="Xiaoying Riley at 3rd Wave Media">    
+    <link rel="shortcut icon" href="favicon.ico"> 
+    
+    <!-- FontAwesome JS-->
+    <script defer src="../assets/plugins/fontawesome/js/all.min.js"></script>
+	
+	<script src="../assets/js/vue.min.js"></script>
+	<script src="../assets/js/echarts.min.js" ></script>
+	<script src="../assets/js/axios.min.js"></script>
+
+
+	 <script type="text/javascript" src="//cdn.bootcss.com/jquery/3.1.1/jquery.min.js"></script>
+    <script type="text/javascript" src="//cdn.bootcss.com/socket.io/1.5.1/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+	<script type="text/javascript" charset="utf-8">
+            var socket;
+            $(document).ready(function(){
+                socket = io.connect('http://' + document.domain + ':' + location.port + '/main');
+
+                socket.on('connect', function() {
+                    socket.emit('join', {});
+                });
+
+<!--                socket.on('users', function(users) {-->
+<!--            	userCount = document.getElementById('user_counter');-->
+<!--            	userCount.innerHTML = users.user_count;-->
+<!--        		});-->
+
+
+                socket.on('status', function(data) {
+<!--                    $('#chat').val($('#chat').val() + '<' + data.msg + '>\n');-->
+<!--                    $('#chat').scrollTop($('#chat')[0].scrollHeight);-->
+                });
+
+                socket.on('message', function(data) {
+                	const update_data = data.data
+
+<!--                    $('#chat').val($('#chat').val() + data.msg + '\n');-->
+<!--                    $('#chat').scrollTop($('#chat')[0].scrollHeight);-->
+
+                    $('#table-cell-k-' + update_data.id.toString()).val(update_data.k);
+                    $('#table-cell-y-' + update_data.id.toString()).val(update_data.y);
+                    $('#table-cell-s-' + update_data.id.toString()).val(update_data.s);
+                    $('#table-cell-x-' + update_data.id.toString()).val(update_data.x);
+                });
+
+
+                $('#app').on('change keyup','tr', function(e) {
+                	   var _id = $(this).attr("id");
+
+                	   text_id = $('#table-cell-id-' + _id.toString()).text();
+
+                       text_k = $('#table-cell-k-' + _id.toString()).val();
+                       $('#table-cell-k-' + _id.toString()).val(text_k);
+
+                       text_y = $('#table-cell-y-' + _id.toString()).val();
+                       $('#table-cell-y-' + _id.toString()).val(text_y);
+
+                       text_s = $('#table-cell-s-' + _id.toString()).val();
+                       $('#table-cell-s-' + _id.toString()).val(text_s);
+
+                       text_x = $('#table-cell-x-' + _id.toString()).val();
+                       $('#table-cell-x-' + _id.toString()).val(text_x);
+
+                       const text_total = {
+                       		id:text_id,
+                       		k:text_k,
+                       		y:text_y,
+                       		s:text_s,
+                       		x:text_x
+                       };
+
+
+                       socket.emit('text', {msg: text_total});
+                });
+
+            });
+
+
+            function leave_room() {
+                socket.emit('left', {}, function() {
+                    socket.disconnect();
+                    // go back to the login page
+                    window.location.href = "{{ url_for('home') }}";
+                });
+            }
+
+            function CloseFunc() {
+  				socket.emit('left', {}, function() {
+                    socket.disconnect();
+                    // go back to the login page
+                });
+			}
+        </script>
+    
+    <!-- App CSS -->  
+    <link id="theme-style" rel="stylesheet" href="../assets/css/portal.css">
+
+</head> 
+
+<body class="app" onbeforeunload="return CloseFunc()">
+    <header class="app-header fixed-top">	   	            
+        <div class="app-header-inner">  
+			
+
+	        <div class="container-fluid py-2">
+		        <div class="app-header-content"> 
+		            <div class="row justify-content-between align-items-center">
+			        
+						<div class=" col-auto app-branding">
+							<a class="app-logo" ><img class="logo-icon me-2" src="../assets/images/app-logo.svg" alt="logo"><span class="logo-text">科技知识语料库</span></a>
+			
+						</div><!--//app-branding-->  
+
+
+						<div class="col-auto">
+							<a id="sidepanel-toggler" class="sidepanel-toggler d-inline-block d-xl-none" href="#">
+								<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30" role="img"><title>Menu</title><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg>
+							</a>
+						</div><!--//col-->
+						<div class="search-mobile-trigger d-sm-none col">
+							<i class="search-mobile-trigger-icon fas fa-search"></i>
+						</div><!--//col-->
+						<div class="app-search-box col">
+							<form class="app-search-form">   
+								<input type="text" placeholder="Search..." name="search" class="form-control search-input">
+								<button type="submit" class="btn search-btn btn-primary" value="Search"><i class="fas fa-search"></i></button> 
+							</form>
+						</div><!--//app-search-box-->
+		            
+		            
+		       	 	</div><!--//row-->
+	            </div><!--//app-header-content-->
+	        </div><!--//container-fluid-->
+        </div><!--//app-header-inner-->
+       
+    </header><!--//app-header-->
+    
+    <div class="">
+	    
+	    <div class="app-content pt-3 p-md-3 p-lg-4">
+		    <div class="container-xl">
+			    
+			    <div class="row g-3 mb-4 align-items-center justify-content-between">
+				    <div class="col-auto">
+			            <h1 class="app-page-title mb-0">语料列表 
+							<!-- <span style="color: orangered;font-size:medium;">名词</span>
+							<span style="color: rgb(5, 193, 245);font-size:medium;">动词</span><span style="color: rgb(2, 242, 110);font-size:medium;">&nbsp;形容词</span> -->
+						</h1>
+						
+				    </div>
+				    <div class="col-auto">
+					     <div class="page-utilities">
+						    <div class="row g-2 justify-content-start justify-content-md-end align-items-center">
+							    <div class="col-auto">
+								    <div class="table-search-form row gx-1 align-items-center">
+					                 
+										
+
+					                    <div class="col-auto" id="button">
+											<button  class="btn app-btn-primary " v-on:click="upload" >上传</button>
+											<input
+											type="file"
+											ref="fileInput"
+											style="display: none"
+											@change="onFilesChanged"
+										  />
+											<button type="button" class="btn app-btn-primary " v-on:click="upload">入图数据库</button>
+											<input
+											type="file"
+											ref="fileInput"
+											style="display: none"
+											@change="onFilesChanged"
+										  />
+					                    </div>
+					                </div>
+					                
+							    </div><!--//col-->
+							   
+						    </div><!--//row-->
+					    </div><!--//table-utilities-->
+				    </div><!--//col-auto-->
+			    </div><!--//row-->
+
+
+			   
+				<div   id="nav">
+			    <nav id="orders-table-tab" class="orders-table-tab app-nav-tabs nav shadow-sm flex-column flex-sm-row mb-4" >
+				
+				    <a class="flex-sm-fill text-sm-center nav-link " v-bind:class="{'active':cur==1}" id="orders-all-tab" v-on:click="nav(1)" href="#" role="tab" aria-controls="orders-all" aria-selected="true">全部</a>
+				    <a class="flex-sm-fill text-sm-center nav-link"  v-bind:class="{'active':cur=='名词'}"   id="orders-paid-tab"  v-on:click="nav('名词')"   href="#" role="tab" aria-controls="orders-paid" aria-selected="false">名词</a>
+				    <a class="flex-sm-fill text-sm-center nav-link"  v-bind:class="{'active':cur=='形容词'}"  id="orders-pending-tab"   v-on:click="nav('形容词')"  href="#" role="tab" aria-controls="orders-pending" aria-selected="false">形容词</a>
+				    <a class="flex-sm-fill text-sm-center nav-link"   v-on:click="nav('动词')"  v-bind:class="{'active':cur=='动词'}"  id="orders-cancelled-tab"  href="#" role="tab" aria-controls="orders-cancelled" aria-selected="false">动词</a>
+				
+				</nav>	</div>
+
+				
+				
+				
+				<div class="tab-content" id="orders-table-tab-content">
+			        <div class="tab-pane fade show active" id="orders-all" role="tabpanel" aria-labelledby="orders-all-tab">
+					    <div class="app-card app-card-orders-table shadow-sm mb-5">
+						    <div class="app-card-body">
+							    <div class="table-responsive">
+							        <table id ="edit_table" class="table app-table-hover mb-0 text-left">
+										<thead>
+											<tr>
+												<th class="cell">编号</th>
+												<th class="cell">科技专有名词</th>
+												<th class="cell">英文</th>
+												<th class="cell">缩写</th>
+												<th class="cell">学科</th>
+												<th class="cell">操作</th>
+											</tr>
+										</thead>
+										<tbody id="app">
+
+										{% for value in data %}
+
+            								<tr id={{value.id}}>
+												<td class="cell" id="table-cell-id-{{value.id}}">{{value.id}}</td>
+												<td class="cell"><span class="" ><input id="table-cell-k-{{value.id}}"  style="border:0" value={{value.k}} ></span></td>
+												<td class="cell"><span class="" ><input id="table-cell-y-{{value.id}}"  style="border:0" value={{value.y}} ></span></td>
+												<td class="cell"><span class="" ><input id="table-cell-s-{{value.id}}"  style="border:0" value={{value.s}} ></span></td>
+												<td class="cell"><span class="" ><input id="table-cell-x-{{value.id}}"  style="border:0" value={{value.x}} ></span></td>
+												<td class="cell">
+										 <!-- <a class="badge bg-success "  href="#">编辑</a> -->
+										 		<a v-on:click="graph.open()" class="badge bg-success" href="#">语料关系</a>
+										 		<a class="badge bg-danger" href="#">删除</a></td>
+											</tr>
+										{% endfor %}
+
+									  </tbody>
+
+									</table>
+						        </div><!--//table-responsive-->
+						       
+						    </div><!--//app-card-body-->		
+						</div><!--//app-card-->
+						<nav class="app-pagination">
+							<div id="paging">
+							<ul  class="pagination justify-content-center">
+								<li class="page-item" v-bind:class="{'disabled': cur==1}">
+									<a class="page-link" href="#" tabindex="-1" @click="prev" aria-disabled="true"><</a>
+							    </li>
+								<!-- <li class="page-item active"><a class="page-link" href="#">1</a></li> -->
+								<li class="page-item"><a class="page-link" href="#">{{cur}}/{{all}}页</a></li>
+								<!-- <li class="page-item"><a class="page-link" href="#">3</a></li> -->
+								<li class="page-item" v-bind:class="{'disabled': cur==all}" >
+								    <a class="page-link" href="#" v-on:click="next" >></a>
+								</li>
+								
+							</ul>
+						</div>
+						</nav><!--//app-pagination-->
+						
+			        </div><!--//tab-pane-->
+			    
+		    </div><!--//container-fluid-->
+	    </div><!--//app-content-->
+	    
+
+		<div   id="graph"  style="position: absolute;top: 31%;left:30%;" v-bind:hidden="hidden ">  
+			<div class="row g-4 mb-4"  >
+					<div class="app-card app-card-chart h-100 shadow-sm">
+					
+						<div  class="app-card-body p-4">					   
+							<div class="chart-container" >
+								<!-- <canvas id="chart-line" ></canvas> -->
+								<div id="main" style="width: 600px;height:300px;"></div>
+							</div>
+							<div  style="text-align: right;">
+								<button v-on:click="close_card" type="button" class="btn-sm btn app-btn-primary" value="Search">关闭</button> 
+							</div>
+						</div><!--//app-card-body-->
+
+						</div>
+					</div><!--//app-card-->
+			</div>
+		</div>
+	    <footer class="app-footer">
+		    <div class="container text-center py-3">
+            <b class="copyright"> CopyRight &copy; 中国科学院档案馆</b>
+			
+		    </div>
+	    </footer><!--//app-footer-->
+	    
+
+
+    </div><!--//app-wrapper-->    					
+
+ 
+    <!-- Javascript -->          
+    <script src="../assets/plugins/popper.min.js"></script>
+    <script src="../assets/plugins/bootstrap/js/bootstrap.min.js"></script>
+    
+    <!-- Page Specific JS -->
+    <script src="../assets/js/app.js"></script>
+
+	<!-- <div style="color:orangered"></div> -->
+	
+	<script type="text/javascript">
+	var idleTimer;
+  	function resetTimer() {
+    	clearTimeout(idleTimer);
+    	idleTimer = setTimeout(closeTab, 600000); // 5 minutes = 300,000 milliseconds
+  	}
+  function closeTab() {
+  	CloseFunc()
+    window.close();
+  }
+  document.addEventListener("mousemove", resetTimer);
+  document.addEventListener("keypress", resetTimer);
+  resetTimer();
+</script>
+
+		
+
+	</script>
+
+</body>
+</html> 
+
