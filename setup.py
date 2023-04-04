@@ -38,7 +38,7 @@ setup(name=PROJECT_NAME,
           'flask_session',
           'markupsafe',
           'python-engineio==4.4.0',
-          'bidict'
+          'bidict',
           'pymysql-1.0.3'
       ],
       zip_safe=False
