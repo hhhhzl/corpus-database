@@ -11,6 +11,9 @@ from utils.logger_tools import get_general_logger
 import json
 from werkzeug.utils import secure_filename
 import pymysql
+from threading import Thread, Event
+from time import sleep
+from random import random
 import os
 import uuid
 from pymysql.converters import escape_string
@@ -23,15 +26,94 @@ bp = Flask(__name__, static_folder=abspath('templates', 'assets'),
 bp.debug = True
 bp.config['SECRET_KEY'] = 'secret'
 bp.config['SESSION_TYPE'] = 'filesystem'
-socketio = SocketIO(bp, manage_session=False)
+socketio = SocketIO(bp, manage_session=False, cors_allowed_origins="*")
 clients = []
+
+# Server functionality for receiving and storing data from elsewhere, not related to the websocket
+# Data Generator Thread
+thread = Thread()
+thread_stop_event = Event()
+
+
+class DataThread(Thread):
+    def __init__(self):
+        self.delay = 0.5
+        super(DataThread, self).__init__()
+
+    def dataGenerator(self):
+        print("Initialising")
+        try:
+            while not thread_stop_event.isSet():
+                socketio.emit('responseMessage', {'temperature': round(random() * 10, 3)})
+                sleep(self.delay)
+        except KeyboardInterrupt:
+            # kill()
+            print("Keyboard  Interrupt")
+
+    def run(self):
+        self.dataGenerator()
+
+
+# Handle the webapp connecting to the websocket
+@socketio.on('connect')
+def test_connect():
+    print('someone connected to websocket')
+    emit('responseMessage', {'data': 'Connected! ayy'})
+    # need visibility of the global thread object
+    # global thread
+    # if not thread.isAlive():
+    #     print("Starting Thread")
+    #     thread = DataThread()
+    #     thread.start()
+
+
+# Handle the webapp connecting to the websocket, including namespace for testing
+@socketio.on('connect', namespace='/devices')
+def test_connect2():
+    print('someone connected to websocket!')
+    emit('responseMessage', {'data': 'Connected devices! ayy'})
+
+
+# Handle the webapp sending a message to the websocket
+@socketio.on('message')
+def handle_message(message):
+    # print('someone sent to the websocket', message)
+    print('Data', message["data"])
+    print('Status', message["status"])
+    global thread
+    global thread_stop_event
+    if message["status"] == "Off":
+        if thread.isAlive():
+            thread_stop_event.set()
+        else:
+            print("Thread not alive")
+    elif message["status"] == "On":
+        if not thread.isAlive():
+            thread_stop_event.clear()
+            print("Starting Thread")
+            thread = DataThread()
+            thread.start()
+    else:
+        print("Unknown command")
+
+
+# Handle the webapp sending a message to the websocket, including namespace for testing
+@socketio.on('message', namespace='/devices')
+def handle_message2():
+    print('someone sent to the websocket!')
+
+
+@socketio.on_error_default  # handles all namespaces without an explicit error handler
+def default_error_handler(e):
+    print('An error occured:')
+    print(e)
 
 
 def getDBConnection():
-    return pymysql.connect(host='0.0.0.0', user='root', password='Mysql@60003', database='Corpus_STA_DB')
+    return pymysql.connect(host='localhost', user='root', password='Mysql-60003', database='Corpus_STA_DB')
 
 
-@socketio.on('join', namespace='/main')
+@socketio.on('join')
 def join(message):
     room = session.get('room')
     join_room(room)
@@ -41,14 +123,14 @@ def join(message):
     emit('status', {'msg': session.get('username') + ' has entered the room.'}, room=room)
 
 
-@socketio.on('text', namespace='/main')
+@socketio.on('text')
 def text(message):
     room = session.get('room')
     emit('message', {'msg': session.get('username') + ' : ' + json.dumps(message['msg']), 'data': message['msg']},
          room=room)
 
 
-@socketio.on('left', namespace='/main')
+@socketio.on('left')
 def left(message):
     room = session.get('room')
     username = session.get('username')
@@ -89,7 +171,6 @@ def main():
 
 
 # numInPage = 20
-numInPage = 5
 
 
 # @bp.route("/count", methods=['GET'])

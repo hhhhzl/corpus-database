@@ -1,9 +1,11 @@
 from email.policy import default
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, Numeric
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, Numeric, ForeignKey
 from sqlalchemy import inspect, UniqueConstraint
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
-from configs.postgres_config import ENGINES, BASES, get_db_session
-
+from configs.mysql_config import ENGINES, BASES, get_db_session_sql
+# from configs.postgres_config import ENGINES, BASES, get_db_session
+from blueprints.dataApi.serializer import Serializer
 
 class FileInfo(BASES['corpus']):
     __tablename__ = "FileInfo"
@@ -25,22 +27,82 @@ class FileInfo(BASES['corpus']):
         return s
 
 
-class CorpusDatabase(BASES['corpus']):
-    __tablename__ = "CorpusDatabase"
+class CorpusDatabase(BASES['corpus'], Serializer):
+    __tablename__ = "Word_segmentation"
 
     id = Column(Integer, autoincrement=True, primary_key=True)
-    noun = Column(String(100))
-    eng_name = Column(String(100))
-    abb = Column(String(20))
-    subject = Column(String(20))
+    noun = Column(String(1000), nullable=False)
+    eng_name = Column(String(1000), nullable=False)
+    attributes = Column(String(100), nullable=True)
+    abb = Column(String(200), nullable=True)
+    synonyms = Column(String(1000), nullable=True)
+    synonym = Column(String(1000), nullable=True)
+    hypernym = Column(String(1000), nullable=True)
+    hyponym = Column(String(1000), nullable=True)
+    create_time = Column(DateTime)
     last_update_time = Column(DateTime)
 
     def __str__(self) -> str:
-        s = f'(n: {self.noun} e: {self.eng_name} a: {self.abb} s: {self.subject}'
+        s = f'(n: {self.noun} e: {self.eng_name} a: {self.abb})'
         return s
 
     def __repr__(self) -> str:
-        s = f'(n: {self.noun} e: {self.eng_name} a: {self.abb} s: {self.subject}'
+        s = f'(n: {self.noun} e: {self.eng_name} a: {self.abb})'
+        return s
+
+    @property
+    def serialize(self):
+        """Return object data in easily serializable format"""
+        return Serializer.serialize(self)
+
+
+class CorpusSubjects(BASES['corpus']):
+    __tablename__ = "Subjects"
+
+    id = Column(Integer, autoincrement=True, primary_key=True)
+    subject_name = Column(String(50))
+    create_time = Column(DateTime)
+    last_update_time = Column(DateTime)
+
+    def __str__(self) -> str:
+        s = f'(s: {self.subject_name} )'
+        return s
+
+    def __repr__(self) -> str:
+        s = f'(s: {self.subject_name} )'
+        return s
+
+    @property
+    def serialize(self):
+        """Return object data in easily serializable format"""
+        return {
+            'id': self.id,
+        }
+
+    # @property
+    # def serialize_many2many(self):
+    #     """
+    #     Return object's relations in easily serializable format.
+    #     NB! Calls many2many's serialize property.
+    #     """
+    #     return [item.serialize for item in self.many2many]
+
+
+class CorpusWordSubjects(BASES['corpus']):
+    __tablename__ = "Word_Subjects"
+
+    id = Column(Integer, autoincrement=True, primary_key=True)
+    word_id = Column(Integer, ForeignKey('Word_segmentation.id', ondelete='CASCADE'), nullable=False)
+    subject_id = Column(Integer, ForeignKey('Subjects.id', ondelete='CASCADE'), nullable=False)
+    create_time = Column(DateTime)
+    last_update_time = Column(DateTime)
+
+    def __str__(self) -> str:
+        s = f'(s: {self.subject_id}, w: {self.word_id} )'
+        return s
+
+    def __repr__(self) -> str:
+        s = f'(s: {self.subject_id}, w:{self.word_id})'
         return s
 
 
@@ -56,11 +118,11 @@ class CorpusHistory(BASES['corpus']):
     category = Column(String(1))
 
     def __str__(self) -> str:
-        s = f'(n: {self.noun} e: {self.eng_name} a: {self.abb} s: {self.subject} t: {self.create_time} c: {self.category}'
+        s = f'(n: {self.noun} e: {self.eng_name} a: {self.abb} s: {self.subject} t: {self.create_time} c: {self.category})'
         return s
 
     def __repr__(self) -> str:
-        s = f'(n: {self.noun} e: {self.eng_name} a: {self.abb} s: {self.subject} t: {self.create_time} c: {self.category}'
+        s = f'(n: {self.noun} e: {self.eng_name} a: {self.abb} s: {self.subject} t: {self.create_time} c: {self.category})'
         return s
 
 

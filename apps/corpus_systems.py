@@ -6,7 +6,7 @@ from flask_cors import CORS
 
 # choose apps from blueprints to register
 def register_blueprints(app: Flask):
-    pass
+    app.register_blueprint(dataApi.bp)
 
 
 def create_app(test_config=None):

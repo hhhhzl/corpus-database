@@ -1,22 +1,19 @@
-from configs.postgres_config import get_db_session
+from configs.mysql_config import get_db_session_sql
 
-with get_db_session('corpus') as session:
+with get_db_session_sql('corpus') as session:
     session.execute("""
-    DO $$ DECLARE
-      r RECORD;
-    BEGIN
-      FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
-        EXECUTE 'DROP TABLE ' || quote_ident(r.tablename) || ' CASCADE';
-      END LOOP;
-    END $$;
+    SELECT CONCAT('DROP TABLE ', TABLE_NAME, ';')
+    FROM INFORMATION_SCHEMA.tables
+    WHERE TABLE_SCHEMA = 'Corpus_STA_DB';
   """)
     try:
         session.commit()
+        print('All table dropped.')
     except Exception as e:
         session.rollback()
         raise e
 
-print('All table dropped.')
+
 
 from blueprints.dataApi.models import *
 
