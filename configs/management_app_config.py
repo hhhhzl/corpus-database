@@ -1,5 +1,5 @@
 HOST = '0.0.0.0'
-PORT = 60004
+PORT = 10986
 
 # 静态文件目录的路径 默认当前项目中的static目录
 static_folder = 'static'

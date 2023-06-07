@@ -12,7 +12,8 @@ from utils import abspath
 from utils.logger_tools import get_general_logger
 import logging
 import pandas
-from blueprints.dataApi.serializer import Serializer
+from blueprints.dataApi.serializer import Serializer as s
+
 logger = get_general_logger('dataApi', path=abspath('logs', 'dataApi'))
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
@@ -82,8 +83,8 @@ class DataController:
     def fetch_corpus_data(page=None, location=None):
         record_per_page = 200
         if not page and not location:
-            location = 1
-        if not location:
+            location = 0
+        if not location and page:
             location = (page-1) * record_per_page + 1
 
         with get_db_session_sql('corpus') as session:
@@ -93,10 +94,41 @@ class DataController:
                 .offset(location)
                 .all()
             )
-        return records
-        # return json.dumps(CorpusDatabase.serialize_list(records))
+            data = s.serialize_list(records)
 
+        # return json.dumps(
+        #     data,
+        #     indent=4,
+        #     default=str,
+        #     ensure_ascii=False
+        # )
+        return data
+
+    @staticmethod
+    def fetch_subject_data(page=None, location=None):
+        record_per_page = 200
+        if not page and not location:
+            location = 0
+        if not location and page:
+            location = (page - 1) * record_per_page + 1
+
+        with get_db_session_sql('corpus') as session:
+            records = (
+                session.query(CorpusSubjects)
+                .limit(record_per_page)
+                .offset(location)
+                .all()
+            )
+            data = s.serialize_list(records)
+
+        # return json.dumps(
+        #     data,
+        #     indent=4,
+        #     default=str,
+        #     ensure_ascii=False
+        # )
+        return data
 
 if __name__ == '__main__':
     Control = DataController()
-    print(Control.fetch_corpus_data())
+    print(Control.fetch_subject_data(page=1))

@@ -3,7 +3,6 @@ from flask import Flask
 from blueprints import dataApi
 from flask_cors import CORS
 
-
 # choose apps from blueprints to register
 def register_blueprints(app: Flask):
     app.register_blueprint(dataApi.bp)
@@ -25,5 +24,5 @@ def create_app(test_config=None):
         app.config.from_mapping(test_config)
 
     register_blueprints(app)
-    cors = CORS(app)
+    CORS(app)
     return app
