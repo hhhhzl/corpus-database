@@ -17,13 +17,14 @@ def fetch_corpus():
     page = args.get('page')
     if page > 0:
         data = DataController.fetch_corpus_data(page = page)
-        response = SuccessDataResponse(data)
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        return response
+        return SuccessDataResponse(data)
+        # response.headers.add('Access-Control-Allow-Origin', '*')
+        # return response
     else:
-        response = ArgumentExceptionResponse(msg='wrong page index.')
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        return response
+        return ArgumentExceptionResponse(msg='wrong page index.')
+        # response = ArgumentExceptionResponse(msg='wrong page index.')
+        # response.headers.add('Access-Control-Allow-Origin', '*')
+        # return response
 
 @bp.route('fetch_subject', methods=['POST'])
 def fetch_subject():
@@ -31,13 +32,13 @@ def fetch_subject():
     page = args.get('page')
     if page > 0:
         data = DataController.fetch_subject_data(page = page)
-        response = SuccessDataResponse(data)
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        return response
+        return SuccessDataResponse(data)
+        # response.headers.add('Access-Control-Allow-Origin', '*')
+        # return response
     else:
-        response = ArgumentExceptionResponse(msg='wrong page index.')
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        return response
+        return ArgumentExceptionResponse(msg='wrong page index.')
+        # response.headers.add('Access-Control-Allow-Origin', '*')
+        # return response
 @bp.route('test', methods=['GET'])
 def test():
     return 'hello'
