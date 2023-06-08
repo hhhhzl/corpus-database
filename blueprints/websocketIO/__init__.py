@@ -271,7 +271,7 @@ def main():
 #     os.remove(os.path.join(bp.config['UPLOAD_FOLDER'], fileName))
 #     return 'ok'
 def start():
-    socketio.run(bp, host='0.0.0.0', port=60004, debug=False)
+    socketio.run(bp, host='0.0.0.0', port=10987, debug=False)
 
 
 if __name__ == "__main__":
