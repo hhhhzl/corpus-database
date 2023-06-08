@@ -24,5 +24,5 @@ def create_app(test_config=None):
         app.config.from_mapping(test_config)
 
     register_blueprints(app)
-    CORS(app)
+    CORS(app, supports_credentials=True)
     return app
