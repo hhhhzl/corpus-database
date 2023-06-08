@@ -11,11 +11,12 @@ logger = get_general_logger(name='corpus_system', path=abspath('logs'))
 
 def main():
     app = corpus_systems.create_app()
+    port = 10986
     # app.run(debug=True, port=5001, host='0.0.0.0')
-    http_server = WSGIServer((HOST, PORT), app)
+    http_server = WSGIServer((HOST, port), app)
     logger.info('Corpus system data api Started.')
     logger.info(f'{PORT}.')
-    logger.info(f'Host: {HOST} Port: {PORT} URL: http://{HOST}:{PORT}')
+    logger.info(f'Host: {HOST} Port: {port} URL: http://{HOST}:{port}')
     http_server.serve_forever()
 
 if __name__ == '__main__':
