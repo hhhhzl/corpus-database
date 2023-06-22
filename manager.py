@@ -6,11 +6,6 @@ import fire
 logger = get_general_logger(name='manager', path=abspath('logs'))
 
 
-class WebsocketIO(ServiceManager):
-    name = 'websocket'
-    file = 'websocketIO.py'
-    dir_path = abspath('services')
-
 
 class DataApi(ServiceManager):
     name = 'data_api'
@@ -19,7 +14,6 @@ class DataApi(ServiceManager):
 
 
 SERVICES_MAP = {
-    'socket': WebsocketIO,
     'dataApi': DataApi
 }
 

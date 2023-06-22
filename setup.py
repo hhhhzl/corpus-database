@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-PROJECT_NAME = 'copus-admin'
+PROJECT_NAME = 'prediction'
 VERSION = '0.0.1'
 
 setup(name=PROJECT_NAME,
@@ -19,6 +19,10 @@ setup(name=PROJECT_NAME,
           'aiohttp==3.8.1',
           'websocket-client==0.48.0',
           'flask==2.0.3',
+          'werkzeug==2.3.6'
+          'click==8.1.3',
+          'itsdangerous==2.1.2',
+          'jinjia2==3.1.2',
           'greenlet==1.1.2',
           'gevent==21.12.0',
           'pandas==1.4.1',

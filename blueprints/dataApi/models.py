@@ -7,124 +7,125 @@ from configs.mysql_config import ENGINES, BASES, get_db_session_sql
 # from configs.postgres_config import ENGINES, BASES, get_db_session
 from blueprints.dataApi.serializer import Serializer
 
-class FileInfo(BASES['corpus']):
-    __tablename__ = "FileInfo"
+class PathInfo(BASES['predict']):
+    __tablename__ = "Paths"
+    # __table_args__ = (
+    #     UniqueConstraint('abs_path',),
+    # )
+
+    id = Column(Integer, autoincrement=True, primary_key=True)
+    path_name = Column(String(20))
+    father_id = Column(Integer, nullable=False)
+    depth = Column(Integer, nullable=False)
+    abs_path = Column(String(100))
+    create_time = Column(DateTime)
+    last_update_time = Column(DateTime)
+
+    def __str__(self) -> str:
+        s = f'(id: {self.id} p: {self.path_name} f: {self.father_id}'
+        return s
+
+    def __repr__(self) -> str:
+        s = f'(id: {self.id} p: {self.path_name} f: {self.father_id}'
+        return s
+
+
+class FileInfo(BASES['predict']):
+    __tablename__ = "Files"
     __table_args__ = (
-        UniqueConstraint('uuid_id', 'filename'),
+        UniqueConstraint('file_name', ),
     )
 
-    id = Column(Integer, primary_key=True)
-    uuid_id = Column(String(100))
-    filename = Column(String(100))
-    filepath = Column(String(100), default="/static/upload")
-
-    def __str__(self) -> str:
-        s = f'(U: {self.uuid_id} N: {self.filename} P: {self.filepath}'
-        return s
-
-    def __repr__(self) -> str:
-        s = f'(U: {self.uuid_id} N: {self.filename} P: {self.filepath}'
-        return s
-
-
-class CorpusDatabase(BASES['corpus'], Serializer):
-    __tablename__ = "Word_segmentation"
-
     id = Column(Integer, autoincrement=True, primary_key=True)
-    noun = Column(String(1000), nullable=False)
-    eng_name = Column(String(1000), nullable=False)
-    attributes = Column(String(100), nullable=True)
-    abb = Column(String(200), nullable=True)
-    synonyms = Column(String(1000), nullable=True)
-    synonym = Column(String(1000), nullable=True)
-    hypernym = Column(String(1000), nullable=True)
-    hyponym = Column(String(1000), nullable=True)
+    file_name = Column(String(20), nullable=False)
+    father_path = Column(Integer, ForeignKey('Paths.id', ondelete='CASCADE'), nullable=False)
     create_time = Column(DateTime)
     last_update_time = Column(DateTime)
 
     def __str__(self) -> str:
-        s = f'(n: {self.noun} e: {self.eng_name} a: {self.abb})'
+        s = f'(f: {self.file_name} p: {self.father_path})'
         return s
 
     def __repr__(self) -> str:
-        s = f'(n: {self.noun} e: {self.eng_name} a: {self.abb})'
+        s = f'(f: {self.file_name} p: {self.father_path})'
         return s
 
-    @property
-    def serialize(self):
-        """Return object data in easily serializable format"""
-        return Serializer.serialize(self)
 
-
-class CorpusSubjects(BASES['corpus']):
-    __tablename__ = "Subjects"
+class PageImagesInfo(BASES['predict']):
+    __tablename__ = "PageImages"
+    __table_args__ = (
+        UniqueConstraint('image_url', 'redis_key_value',),
+    )
 
     id = Column(Integer, autoincrement=True, primary_key=True)
-    subject_name = Column(String(50))
+    page_name = Column(String(40), nullable=False)
+    page_inner_id = Column(Integer)
+    father_Path = Column(Integer, ForeignKey('Files.id', ondelete='CASCADE'), nullable=False)
+    image_url = Column(String(150), nullable=True,unique=True)
+    image_height = Column(Integer)
+    image_width = Column(Integer)
+    redis_key_value = Column(String(40), nullable=True, unique=True)
+    sub_page = Column(Integer)
     create_time = Column(DateTime)
     last_update_time = Column(DateTime)
 
     def __str__(self) -> str:
-        s = f'(s: {self.subject_name} )'
+        s = f'(p: {self.page_name} f: {self.father_file}) id:{self.page_inner_id} i:{self.image_url} k:{self.redis_key_value}'
         return s
 
     def __repr__(self) -> str:
-        s = f'(s: {self.subject_name} )'
+        s = f'(p: {self.page_name} f: {self.father_file}) id:{self.page_inner_id} i:{self.image_url} k:{self.redis_key_value}'
         return s
 
-    @property
-    def serialize(self):
-        """Return object data in easily serializable format"""
-        return {
-            'id': self.id,
-        }
 
-    # @property
-    # def serialize_many2many(self):
-    #     """
-    #     Return object's relations in easily serializable format.
-    #     NB! Calls many2many's serialize property.
-    #     """
-    #     return [item.serialize for item in self.many2many]
-
-
-class CorpusWordSubjects(BASES['corpus']):
-    __tablename__ = "Word_Subjects"
+class Contents(BASES['predict']):
+    __tablename__ = "Contents"
+    __table_args__ = (
+        UniqueConstraint('name',),
+    )
 
     id = Column(Integer, autoincrement=True, primary_key=True)
-    word_id = Column(Integer, ForeignKey('Word_segmentation.id', ondelete='CASCADE'), nullable=False)
-    subject_id = Column(Integer, ForeignKey('Subjects.id', ondelete='CASCADE'), nullable=False)
+    name = Column(String(40), nullable=False)
+    father_page = Column(Integer, ForeignKey('PageImages.id', ondelete='CASCADE'), nullable=False)
+    father_file = Column(Integer, ForeignKey('Files.id', ondelete='CASCADE'), nullable=False)
+    content_type = Column(String(6), nullable=True)
+    content = Column(String(3000), nullable=True)
+    content_location = Column(String(150), nullable=True)
+    redis_key_value = Column(String(30), nullable=True)
+    source = Column(Integer, default=1)
+    is_active = Column(Boolean, default=True)
     create_time = Column(DateTime)
     last_update_time = Column(DateTime)
 
     def __str__(self) -> str:
-        s = f'(s: {self.subject_id}, w: {self.word_id} )'
+        s = f'(n: {self.name}, p:{self.father_page}, f:{self.father_file}, type:{self.content_type}, c:{self.content}, l: {self.content_location} )'
         return s
 
     def __repr__(self) -> str:
-        s = f'(s: {self.subject_id}, w:{self.word_id})'
+        s = f'(n: {self.name}, p:{self.father_page}, f:{self.father_file}, type:{self.content_type}, c:{self.content}, l: {self.content_location} )'
         return s
 
-
-class CorpusHistory(BASES['corpus']):
-    __tablename__ = "CorpusHistory"
+class Contents_backup(BASES['predict']):
+    __tablename__ = "Contents_Backup"
+    __table_args__ = (
+        UniqueConstraint('content_id',),
+    )
 
     id = Column(Integer, autoincrement=True, primary_key=True)
-    noun = Column(String(100))
-    eng_name = Column(String(100))
-    abb = Column(String(20))
-    subject = Column(String(20))
+    content_id = Column(Integer, ForeignKey('Contents.id', ondelete='CASCADE'), nullable=False)
+    content = Column(String(1000), nullable=True)
+    content_location = Column(String(150), nullable=True)
     create_time = Column(DateTime)
-    category = Column(String(1))
+    last_update_time = Column(DateTime)
+    last_backup_time = Column(DateTime)
 
     def __str__(self) -> str:
-        s = f'(n: {self.noun} e: {self.eng_name} a: {self.abb} s: {self.subject} t: {self.create_time} c: {self.category})'
+        s = f'(id: {self.id} c:{self.content_id})'
         return s
 
     def __repr__(self) -> str:
-        s = f'(n: {self.noun} e: {self.eng_name} a: {self.abb} s: {self.subject} t: {self.create_time} c: {self.category})'
+        s = f'(id: {self.id} c:{self.content_id})'
         return s
-
 
 if __name__ == "__main__":
     for BASE in BASES.values():

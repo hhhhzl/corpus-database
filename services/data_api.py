@@ -1,8 +1,10 @@
+
+
 from gevent import monkey
 from gevent.pywsgi import WSGIServer
 monkey.patch_all()
 
-from apps import corpus_systems
+from apps import prediction_system
 from utils import abspath
 from utils.logger_tools import get_general_logger
 from configs.management_app_config import HOST, PORT
@@ -10,13 +12,11 @@ from configs.management_app_config import HOST, PORT
 logger = get_general_logger(name='corpus_system', path=abspath('logs'))
 
 def main():
-    app = corpus_systems.create_app()
-    port = 10986
+    app = prediction_system.create_app()
     # app.run(debug=True, port=5001, host='0.0.0.0')
-    http_server = WSGIServer((HOST, port), app)
-    logger.info('Corpus system data api Started.')
-    logger.info(f'{PORT}.')
-    logger.info(f'Host: {HOST} Port: {port} URL: http://{HOST}:{port}')
+    http_server = WSGIServer((HOST, PORT), app)
+    logger.info('Prediction Management system data api Started.')
+    logger.info(f'Host: {HOST} Port: {PORT} URL: http://{HOST}:{PORT}')
     http_server.serve_forever()
 
 if __name__ == '__main__':

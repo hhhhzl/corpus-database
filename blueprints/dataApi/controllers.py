@@ -1,134 +1,182 @@
 from collections import Counter
 import datetime
-import statistics
-from flask import jsonify
 import pandas as pd
 from configs.mysql_config import get_db_session_sql
-from blueprints.dataApi.models import CorpusDatabase, CorpusSubjects
+from blueprints.dataApi.models import (
+    PathInfo,
+    PageImagesInfo,
+    Contents_backup,
+    Contents,
+    FileInfo
+)
 from pprint import pprint
-import simplejson as json
-import os
 from utils import abspath
 from utils.logger_tools import get_general_logger
 import logging
-import pandas
 from blueprints.dataApi.serializer import Serializer as s
+from utils.redis_tools import RedisWrapper
+import uuid as u
 
 logger = get_general_logger('dataApi', path=abspath('logs', 'dataApi'))
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
 
 class DataController:
-    """
-    查找流程：
-    1。 如果user只有一个，查找post
-    2. 如果user多个，查找redis merge
-
-    """
 
     # def __init__(self, user_number):
     #     self.user_number = user_number
+    def __init__(self):
+        pass
 
     @staticmethod
-    def initial_database():
-        path = abspath('static', 'init')
-        try:
-            with get_db_session_sql('corpus') as session:
-                data = pd.read_csv(path + "/init_words.csv")
+    def _search_path_file(id=None):
+        father_id = None
+        if not id:
+            father_id = -1
+        else:
+            father_id = id
 
-                for id, row in data.iterrows():
-                    # if not pd.isnull(row['trans']) and not pd.isnull(row['word']):
-                        word = CorpusDatabase(
-                            noun=row['trans'],
-                            eng_name=row['word'],
-                            create_time=datetime.datetime.now(),
-                            last_update_time=datetime.datetime.now(),
-                        )
-                        session.add(word)
+        with get_db_session_sql('predict') as session:
+            records = (
+                session.query(PathInfo)
+                .filter(PathInfo.father_id == father_id)
+                .all()
+            )
+            if not records:
+                files = (
+                    session.query(FileInfo)
+                    .filter(FileInfo.father_path == father_id)
+                    .all()
+                )
+
+                not_show = ['create_time', 'last_update_time']
+                return s.serialize_list(files, not_show)
+
+            else:
+                return s.serialize_list(records)
+
+    @staticmethod
+    def _search_file_page(id):
+        with get_db_session_sql('predict') as session:
+            records = (
+                session.query(PageImagesInfo)
+                .filter(PageImagesInfo.father_Path == id)
+                .filter(PageImagesInfo.sub_page == 1)
+                .all()
+            )
+            not_show = ['sub_page', 'create_time','last_update_time']
+            data = s.serialize_list(records, not_show)
+            return sorted(data, key=lambda d: d['page_inner_id'])
+
+    @staticmethod
+    def _search_content(image_id, uuid=None):
+        with get_db_session_sql('predict') as session:
+            records = (
+                session.query(Contents)
+                .filter(Contents.father_page == image_id)
+                .filter(Contents.is_active == True)
+                .all()
+            )
+            data = s.serialize_list(records, ["is_active", 'create_time', 'last_update_time', 'source'])
+
+            # 查看lock状况
+            redis_cli = RedisWrapper('p_lock')
+            value = redis_cli.get(f'predict:lock:{image_id}')
+
+            # 有锁
+            if value:
+                # 无uuid或uuid不匹配，无法解锁
+                if not uuid  or uuid != value:
+                    new = [{
+                        'uuid': '',
+                        'lock': True,
+                        'contents':[dict(item, is_lock=True) for item in data] # 内容不可编辑状态
+                    }]
+                    return new
+
+                # uuid匹配，延续解锁时长3s
+                elif uuid == value:
+                    new = [{
+                        'uuid': value,
+                        'lock': False,
+                        'contents': [dict(item, is_lock=False) for item in data]  # 内容可编辑状态
+                    }]
+                    redis_cli.set(key=f'predict:lock:{image_id}', ex=10, value=value)
+                    return new
+            # 无锁
+            else:
+                uuid_id = u.uuid4()
+                new = [{
+                    'uuid':str(uuid_id),
+                    'lock': False,
+                    'contents': [dict(item, is_lock=False) for item in data] # 内容可编辑状态
+                }]
+                redis_cli.set(key=f'predict:lock:{image_id}', ex=10, value=str(uuid_id))
+                return new
+    @staticmethod
+    def _update_content(id, content, location):
+        with get_db_session_sql('predict') as session:
+            record = (
+                session.query(Contents)
+                .filter(Contents.id == id)
+                .one_or_none()
+            )
+            if record and record.create_time == record.last_updata_time:
+                content_back_up = Contents_backup(
+                    content_id = record.id,
+                    content = record.content,
+                    content_location = record.content_location,
+                    create_time = record.create_time,
+                    last_update_time = datetime.datetime.now()
+                )
+                session.add(content_back_up)
 
                 try:
                     session.commit()
-                    logging.info(f"Words data saved.")
-                except Exception as e:
-                    logging.info(f'{e}')
-                    session.rollback()
-                    raise e
-
-        except:
-            logging.info(f"No Words data to migrate.")
-
-        try:
-            with get_db_session_sql('corpus') as session:
-                data = pd.read_csv(path + "/init_subjects.csv")
-                for id, row in data.iterrows():
-                    word = CorpusSubjects(
-                        subject_name=row['subjects'],
-                        create_time=datetime.datetime.now(),
-                        last_update_time=datetime.datetime.now(),
-                    )
-                    session.add(word)
-
-                try:
-                    session.commit()
-                    logging.info(f"Subjects data saved.")
                 except Exception as e:
                     session.rollback()
-                    logging.info(f"{e}")
-                    raise e
 
-        except:
-            logging.info(f"No subjects data to migrate.")
-
-    @staticmethod
-    def fetch_corpus_data(page=None, location=None):
-        record_per_page = 200
-        if not page and not location:
-            location = 0
-        if not location and page:
-            location = (page-1) * record_per_page + 1
-
-        with get_db_session_sql('corpus') as session:
-            records = (
-                session.query(CorpusDatabase)
-                .limit(record_per_page)
-                .offset(location)
-                .all()
-            )
-            data = s.serialize_list(records)
-
-        # return json.dumps(
-        #     data,
-        #     indent=4,
-        #     default=str,
-        #     ensure_ascii=False
-        # )
-        return data
+            # 更新
+            try:
+                records = (
+                    session.query(Contents)
+                    .filter(Contents.id == id)
+                ).update({
+                    'content': content,
+                    'content_location':location,
+                    'last_update_time':datetime.datetime.now()
+                })
+                return True
+            except:
+                return False
 
     @staticmethod
-    def fetch_subject_data(page=None, location=None):
-        record_per_page = 200
-        if not page and not location:
-            location = 0
-        if not location and page:
-            location = (page - 1) * record_per_page + 1
-
-        with get_db_session_sql('corpus') as session:
-            records = (
-                session.query(CorpusSubjects)
-                .limit(record_per_page)
-                .offset(location)
-                .all()
+    def _add_content(row):
+        with get_db_session_sql('predict') as session:
+            record = Contents(
+                name=row['name'],
+                content_type=row['content_type'],
+                father_file=row['father_file'],
+                father_page=row['father_page'],
+                content=row['content'],
+                content_location=row['location'],
+                redis_key_value='',
+                source=0,
+                is_active=True,
+                create_time=datetime.datetime.now(),
+                last_update_time=datetime.datetime.now(),
             )
-            data = s.serialize_list(records)
+            session.add(record)
 
-        # return json.dumps(
-        #     data,
-        #     indent=4,
-        #     default=str,
-        #     ensure_ascii=False
-        # )
-        return data
+            try:
+                session.commit()
+                return True
+            except Exception as e:
+                session.rollback()
+                return e
+
+
 
 if __name__ == '__main__':
-    Control = DataController()
-    print(Control.fetch_subject_data(page=1))
+    Control = DataController._search_content(image_id=37)
+    pprint(Control)

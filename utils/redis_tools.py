@@ -7,7 +7,7 @@ from configs.redis_config import REDIS_SETTINGS
 
 class RedisWrapper(object):
 
-    def __init__(self, setting_name='app1'):
+    def __init__(self, setting_name='p_image'):
 
         DEFAULT_SETTING = REDIS_SETTINGS[setting_name]
 
@@ -100,8 +100,7 @@ class RedisWrapper(object):
         return result
 
 
-redis_cli = RedisWrapper()
-finance_redis_cli = RedisWrapper('finance_data')
+
 
 if __name__ == '__main__':
-    pass
+    redis_cli = RedisWrapper('p_lock')

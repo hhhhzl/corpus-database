@@ -4,15 +4,17 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
 MYSQL_SETTINGS = {
-    "corpus": {
+    "predict": {
         "HOST": "localhost",
         "PORT": 3306,
         "USERNAME": "root",
         "PASSWORD": "Mysql-60003",
-        "DB": "Corpus_STA_DB",
+        "DB": "Prediction_manage",
         "CONNECTOR": "pymysql"
     }
 }
+
+
 
 
 def get_db_uri(CONNECTOR, USERNAME, PASSWORD, HOST, PORT, DB):
@@ -23,12 +25,14 @@ def get_db_session_sql(db) -> Session:
     return sessionmaker(ENGINES[db])()
 
 
-DB_URI_CORPUS = get_db_uri(**MYSQL_SETTINGS["corpus"])
+DB_URI_CORPUS = get_db_uri(**MYSQL_SETTINGS["predict"])
 
 ENGINES = {
-    "corpus": create_engine(DB_URI_CORPUS, max_overflow=-1)
+    "predict": create_engine(DB_URI_CORPUS, max_overflow=-1)
 }
 
 BASES = {
-    "corpus": declarative_base(ENGINES["corpus"])
+    "predict": declarative_base(ENGINES["predict"])
 }
+
+
