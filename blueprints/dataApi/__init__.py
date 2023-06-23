@@ -17,33 +17,27 @@ def fetch_root():
         return ArgumentExceptionResponse(msg=f'{e}')
 
 # http://localhost:10981/api/data_api/fetch_path {path_id:int}
-@bp.route('fetch_path', methods=['GET'])
-def fetch_path():
-    args = request.json
-    father_id = args.get('path_id')
+@bp.route('fetch_path/<path_id>/', methods=['GET'])
+def fetch_path(path_id):
     try:
-        data = DataController._search_path_file(id=father_id)
+        data = DataController._search_path_file(id=path_id)
         return SuccessDataResponse(data)
     except Exception as e:
         return ArgumentExceptionResponse(msg=f'{e}')
 
 
-@bp.route('fetch_page', methods=['GET'])
-def fetch_page():
-    args = request.json
-    father_file_id = args.get('file_id')
+@bp.route('fetch_page/<file_id>/', methods=['GET'])
+def fetch_page(file_id):
     try:
-        data = DataController._search_path_file(id=father_file_id)
+        data = DataController._search_file_page(id=file_id)
         return SuccessDataResponse(data)
     except Exception as e:
         return ArgumentExceptionResponse(msg=f'{e}')
 
-@bp.route('fetch_content', methods=['GET'])
-def fetch_content():
-    args = request.json
-    father_image_id = args.get('image_id')
+@bp.route('fetch_content/<image_id>/', methods=['GET'])
+def fetch_content(image_id):
     try:
-        data = DataController._search_content(image_id=father_image_id)
+        data = DataController._search_content(image_id=image_id)
         return SuccessDataResponse(data)
     except Exception as e:
         return ArgumentExceptionResponse(msg=f'{e}')
@@ -88,7 +82,7 @@ def add_content():
         return ArgumentExceptionResponse(msg=f'{response}')
 
 # 悲观锁服务
-@bp.route('lock', methods=['POST'])
+@bp.route('lock', methods=['GET'])
 def lock():
     args = json.loads(request.json)
     if 'image_id' not in args:

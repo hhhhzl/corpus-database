@@ -49,7 +49,7 @@ class DataController:
                     .all()
                 )
 
-                not_show = ['create_time', 'last_update_time']
+                not_show = ['create_time']
                 return s.serialize_list(files, not_show)
 
             else:
