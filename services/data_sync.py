@@ -310,7 +310,6 @@ class DataSync(DataProcess):
                 .one_or_none()
             )
             if check_record_file:
-
                 check_page = (
                     session.query(PageImagesInfo)
                     .filter(PageImagesInfo.father_Path == check_record_file.id)
@@ -397,6 +396,7 @@ class DataSync(DataProcess):
                     session.query(Contents)
                     .filter(Contents.name == row[0])
                     .filter(Contents.content_type == row[1])
+                    .filter(Contents.content == row[2])
                     .one_or_none()
                 )
                 if not record:
@@ -417,7 +417,7 @@ class DataSync(DataProcess):
             self.process_paths(folder_path)
             logging.info(f"格式化数据成功 - 检测到{len(self.database_dataframe['Paths'])}条paths数据 - "
                          f"{len(self.database_dataframe['Files'])}条Files数据 - {len(self.database_dataframe['PageImages'])}条Images数据 - "
-                         f"{len(self.database_dataframe['PageImages'])}条Contents数据")
+                         f"{len(self.database_dataframe['Contents'])}条Contents数据")
         except Exception as e:
             logging.info(e)
             logging.info("格式化数据失败")
@@ -435,5 +435,8 @@ if __name__ == "__main__":
     # pprint(engine.database_dataframe["PageImages"])
     # pprint(engine.database_dataframe['Contents'])
     # for row in engine.database_dataframe["Contents"]:
-    #     print(row[-2])
+    #     if row[0] == 'A020-00175-001-002_text_0.txt':
+    #         print(row[2])
+    #         print()
+        # print(row[0], row[1])
     # pprint(engine.path_tree)
