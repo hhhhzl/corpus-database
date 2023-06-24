@@ -22,11 +22,11 @@ class PathInfo(BASES['predict']):
     last_update_time = Column(DateTime)
 
     def __str__(self) -> str:
-        s = f'(id: {self.id} p: {self.path_name} f: {self.father_id}'
+        s = f'(id: {self.id} p: {self.path_name} f: {self.father_id})'
         return s
 
     def __repr__(self) -> str:
-        s = f'(id: {self.id} p: {self.path_name} f: {self.father_id}'
+        s = f'(id: {self.id} p: {self.path_name} f: {self.father_id})'
         return s
 
 
@@ -43,11 +43,11 @@ class FileInfo(BASES['predict']):
     last_update_time = Column(DateTime)
 
     def __str__(self) -> str:
-        s = f'(f: {self.file_name} p: {self.father_path})'
+        s = f'(f: {self.file_name} p: {self.father_path} )'
         return s
 
     def __repr__(self) -> str:
-        s = f'(f: {self.file_name} p: {self.father_path})'
+        s = f'(f: {self.file_name} p: {self.father_path} )'
         return s
 
 
@@ -70,11 +70,11 @@ class PageImagesInfo(BASES['predict']):
     last_update_time = Column(DateTime)
 
     def __str__(self) -> str:
-        s = f'(p: {self.page_name} f: {self.father_file}) id:{self.page_inner_id} i:{self.image_url} k:{self.redis_key_value}'
+        s = f'(p: {self.page_name} f: {self.father_file}) id:{self.page_inner_id} i:{self.image_url} k:{self.redis_key_value} )'
         return s
 
     def __repr__(self) -> str:
-        s = f'(p: {self.page_name} f: {self.father_file}) id:{self.page_inner_id} i:{self.image_url} k:{self.redis_key_value}'
+        s = f'(p: {self.page_name} f: {self.father_file}) id:{self.page_inner_id} i:{self.image_url} k:{self.redis_key_value} )'
         return s
 
 

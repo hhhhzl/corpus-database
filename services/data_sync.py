@@ -75,7 +75,7 @@ class DataProcess:
     def __init__(self, root_path):
         self.root_path = root_path
         self.root_symbol = ''
-        self.root_name = root_path.rsplit('/', 1)[1]
+        self.root_name = root_path.rsplit(os.sep)[-1]
 
         self.ignore_paths = [
             '.idea',
@@ -123,8 +123,8 @@ class DataProcess:
                     self.process_contents(f_item, root)
 
     def process_images(self, f_item, item_path, whether_sub):
-        file_name = item_path.split('.')[0].split('/')[-1][:14]
-        page_name = item_path.split('.')[0].split('/')[-1][:18]
+        file_name = item_path.split('.')[0].split(os.sep)[-1][:14]
+        page_name = item_path.split('.')[0].split(os.sep)[-1][:18]
         page = f_item[17:18]
         redis_key = None
         if not whether_sub:
@@ -156,8 +156,8 @@ class DataProcess:
         item_path = os.path.join(root, f_item)
         if f_item.endswith(".xlsx") or f_item.endswith(".xlx"):
             _content = pd.read_excel(item_path, index_col=False).to_json(orient="values")
-            inter_page = int(root.split('/')[-1][15:18])  # Update page value based on the parent folder name
-            file_name = root.split('/')[-1][:14]
+            inter_page = int(root.split(os.sep)[-1][15:18]) # Update page value based on the parent folder name
+            file_name = root.split(os.sep)[-1][:14]
             item_struct = DataModelStruct.content_model(
                 name=f_item,
                 content_type='table',
@@ -168,7 +168,7 @@ class DataProcess:
                 page_inner=inter_page
             )
             self.database_dataframe['Contents'].append(item_struct)
-        elif f_item.startswith("A020") and f_item.endswith(".txt") and not "processing_list" in root.split('/'):
+        elif f_item.startswith("A020") and f_item.endswith(".txt") and not "processing_list" in root.split(os.sep):
             file = f_item.split('.')[0][:14]
             page_inner = int(f_item.split('.')[0][15:18])
             item_struct = DataModelStruct.content_model(
@@ -225,9 +225,9 @@ class DataSync(DataProcess):
             else:
                 check_record = (
                     session.query(PathInfo)
-                    .filter(PathInfo.path_name == row[2].rsplit('/', 1)[1])
+                    .filter(PathInfo.path_name == row[2].rsplit(os.sep, 1)[1])
                     .filter(PathInfo.depth == row[1] - 1)
-                    .filter(PathInfo.abs_path == row[2].rsplit('/', 1)[0])
+                    .filter(PathInfo.abs_path == row[2].rsplit(os.sep, 1)[0])
                     .one_or_none()
                 )
                 if check_record:
@@ -252,8 +252,8 @@ class DataSync(DataProcess):
         with get_db_session_sql('predict') as session:
             check_record = (
                 session.query(PathInfo)
-                .filter(PathInfo.path_name == row[1].rsplit('/', 1)[1])
-                .filter(PathInfo.abs_path == row[1].rsplit('/', 1)[0])
+                .filter(PathInfo.path_name == row[1].rsplit(os.sep, 1)[1])
+                .filter(PathInfo.abs_path == row[1].rsplit(os.sep, 1)[0])
                 .one_or_none()
             )
             if check_record:
@@ -410,7 +410,7 @@ class DataSync(DataProcess):
         if self.root_path and not folder_path:
             folder_path = self.root_path
 
-        root_dir = self.root_path.rsplit('/', 1)[0]
+        root_dir = self.root_path.rsplit(os.sep, 1)[0]
         root_data = DataModelStruct.path_model(self.root_name, 1, root_dir)
         self.database_dataframe['Paths'].append(root_data)
         try:
@@ -423,8 +423,6 @@ class DataSync(DataProcess):
             logging.info("格式化数据失败")
 
         self.database_updata(root_id)
-
-
 
 
 if __name__ == "__main__":
