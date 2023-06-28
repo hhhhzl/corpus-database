@@ -16,6 +16,7 @@ import logging
 from blueprints.dataApi.serializer import Serializer as s
 from utils.redis_tools import RedisWrapper
 import uuid as u
+import base64
 
 logger = get_general_logger('dataApi', path=abspath('logs', 'dataApi'))
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
@@ -66,6 +67,20 @@ class DataController:
             )
             not_show = ['sub_page', 'create_time','last_update_time']
             data = s.serialize_list(records, not_show)
+
+            # redis缓存
+            redis_cli = RedisWrapper('p_image')
+
+            for row in data:
+                value = redis_cli.get(row['redis_key_value'])
+                if not value:
+                    with open(row['image_url'], "rb") as img_file:
+                        base64_bytes = base64.b64encode(img_file.read())
+                        base64_string = base64_bytes.decode('utf-8')
+                    redis_cli.set(key=row['redis_key_value'], ex=60*60*6, value=base64_string)
+                    row['image_url'] = base64_string
+                else:
+                    row['image_url'] = value
             return sorted(data, key=lambda d: d['page_inner_id'])
 
     @staticmethod
@@ -77,7 +92,7 @@ class DataController:
                 .filter(Contents.is_active == True)
                 .all()
             )
-            data = s.serialize_list(records, ["is_active", 'create_time', 'last_update_time', 'source'])
+            data = s.serialize_list(records, ["is_active", 'create_time', 'last_update_time'])
 
             # 查看lock状况
             redis_cli = RedisWrapper('p_lock')
@@ -121,7 +136,7 @@ class DataController:
                 .filter(Contents.id == id)
                 .one_or_none()
             )
-            if record and record.create_time == record.last_updata_time:
+            if record and record.create_time == record.last_update_time and record.source == 1:
                 content_back_up = Contents_backup(
                     content_id = record.id,
                     content = record.content,
@@ -136,47 +151,92 @@ class DataController:
                 except Exception as e:
                     session.rollback()
 
-            # 更新
-            try:
-                records = (
-                    session.query(Contents)
-                    .filter(Contents.id == id)
-                ).update({
-                    'content': content,
-                    'content_location':location,
-                    'last_update_time':datetime.datetime.now()
-                })
-                return True
-            except:
-                return False
 
-    @staticmethod
-    def _add_content(row):
-        with get_db_session_sql('predict') as session:
-            record = Contents(
-                name=row['name'],
-                content_type=row['content_type'],
-                father_file=row['father_file'],
-                father_page=row['father_page'],
-                content=row['content'],
-                content_location=row['location'],
-                redis_key_value='',
-                source=0,
-                is_active=True,
-                create_time=datetime.datetime.now(),
-                last_update_time=datetime.datetime.now(),
+            records = (
+                session.query(Contents)
+                .filter(Contents.id == id)
+                .update({
+                    Contents.content: content,
+                    Contents.content_location: location,
+                    Contents.last_update_time: datetime.datetime.now()
+                })
             )
-            session.add(record)
+
+            records = (
+                session.query(Contents)
+                .filter(Contents.id == id)
+                .one_or_none()
+            )
+
+            file = (
+                session.query(FileInfo)
+                .filter(FileInfo.id == records.father_file)
+                .update({
+                    FileInfo.last_update_time: datetime.datetime.now()
+                })
+            )
 
             try:
                 session.commit()
                 return True
             except Exception as e:
                 session.rollback()
-                return e
+                return False
+
+
+
+    @staticmethod
+    def _add_content(row):
+        with get_db_session_sql('predict') as session:
+            file_record = (
+                session.query(PageImagesInfo)
+                .filter(PageImagesInfo.id == row['father_page'])
+                .one_or_none()
+            )
+            if file_record:
+                record = Contents(
+                    name=row['name'],
+                    content_type=row['content_type'],
+                    father_file=file_record.father_Path,
+                    father_page=row['father_page'],
+                    content=row['content'],
+                    content_location=row['content_location'],
+                    redis_key_value='',
+                    source=0,
+                    is_active=True,
+                    create_time=datetime.datetime.now(),
+                    last_update_time=datetime.datetime.now(),
+                )
+                session.add(record)
+
+                try:
+                    session.commit()
+                    return True
+                except Exception as e:
+                    session.rollback()
+                    return e
+
+    @staticmethod
+    def _delete_content(id):
+        with get_db_session_sql('predict') as session:
+            record = (
+                session.query(Contents)
+                .filter(Contents.id == id)
+                .one_or_none()
+            )
+            if record:
+                session.delete(record)
+
+                try:
+                    session.commit()
+                    return True
+                except Exception as e:
+                    session.rollback()
+                    return e
+
 
 
 
 if __name__ == '__main__':
-    Control = DataController._search_content(image_id=37)
+    Control = DataController._search_file_page(id=2)
     pprint(Control)

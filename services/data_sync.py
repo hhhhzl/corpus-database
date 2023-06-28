@@ -24,6 +24,7 @@ from PIL import Image
 import mysql.connector
 import pandas as pd
 from configs.environment import PREDICT_PATH as root
+import re
 from utils.structure import TreeNode
 
 logger = get_general_logger('datasync', path=abspath('logs', 'data_sync'))
@@ -76,7 +77,7 @@ class DataProcess:
         self.root_path = root_path
         self.root_symbol = ''
         self.root_name = root_path.rsplit(os.sep)[-1]
-
+        self.read_line_count = {}  # 跟踪每个文件的已读取行数
         self.ignore_paths = [
             '.idea',
             '.DS_Store',
@@ -100,15 +101,17 @@ class DataProcess:
     def process_paths(self, folder_path):
         for root, dirs, files in os.walk(folder_path):
             if root in self.path_tree:
+                # print(root)
                 for d_item in dirs:
                     if d_item not in self.ignore_paths:
-
                         if self.path_depth[root] < 3:
+
                             self.path_tree[os.path.join(root, d_item)] = root
+
                             self.path_depth[os.path.join(root, d_item)] = self.path_depth[root] + 1
                             item_struct = DataModelStruct.path_model(d_item, self.path_depth[root] + 1, root)
                             self.database_dataframe['Paths'].append(item_struct)
-
+                            # print(item_struct)
                         elif self.path_depth[root] == 3:
                             if d_item[:-4] not in self.file_page:
                                 self.file_page[d_item[:-4]] = 1
@@ -119,6 +122,7 @@ class DataProcess:
                                 self.database_dataframe['Files'].append(item_struct)
 
             for f_item in files:
+                # print(f_item)
                 if f_item not in self.ignore_paths:
                     self.process_contents(f_item, root)
 
@@ -154,23 +158,64 @@ class DataProcess:
     def process_contents(self, f_item, root):
         item_struct = None
         item_path = os.path.join(root, f_item)
-        if f_item.endswith(".xlsx") or f_item.endswith(".xlx"):
-            _content = pd.read_excel(item_path, index_col=False).to_json(orient="values")
-            inter_page = int(root.split(os.sep)[-1][15:18]) # Update page value based on the parent folder name
-            file_name = root.split(os.sep)[-1][:14]
+        if f_item.endswith(".xlsx") or f_item.endswith(".xls"):
+            _content = pd.read_excel(item_path, nrows=None, header=None, index_col=False).to_json(orient="values")
+            inter_page = int(root.split(os.sep)[-1][15:18])  # Update page value based on the parent folder name
+            file_name = root.split(os.sep)[-1][:14]  # Update page value based on the parent folder name
+
+            match = re.search(r'\[(.*?)\]', f_item)
+            if match:
+                values = match.group(1).split(', ')
+                values = [int(value) for value in values]
+            else:
+                values = []
+
+            # 获取图片的信息
+            image_width = 0
+            image_height = 0
+            parent_dir = os.path.dirname(root)
+            image_files = [file for file in os.listdir(parent_dir) if file.endswith(".jpg")]
+            result = self.process_locations(image_files[0])
+            boxX, boxY, boxW, boxH = map(float, result.split()) # 从文件中读取的大表格的信息
+
+            if image_files:
+                image_file = image_files[0]
+                image_path = os.path.join(parent_dir, image_file)
+                image = Image.open(image_path)
+                image_width, image_height = image.size
+            picture_width = image_width / boxW;
+            picture_height = image_height / boxH;
+            # 坐标数组
+            ratios = []
+
+            # 计算标记框2相对于图像的中心点坐标
+
+            center_x2 = (boxX * picture_width - image_width / 2 + (values[2] - values[0]) / 2 + values[0]) / picture_width;
+            center_y2 = (boxY * picture_height - image_height / 2 + (values[3] - values[1]) / 2 + values[1]) / picture_height;
+
+            # 计算标记框2相对于图像的中心点的宽高
+            width_ratio = (values[2] - values[0]) / picture_width
+            height_ratio = (values[3] - values[1]) / picture_height
+
+            ratios.append(center_x2)
+            ratios.append(center_y2)
+            ratios.append(width_ratio)
+            ratios.append(height_ratio)
             item_struct = DataModelStruct.content_model(
                 name=f_item,
                 content_type='table',
                 content=_content,
-                content_location="NULL",
+                content_location=' '.join(str(ratio) for ratio in ratios),
                 redis_key_value='',
-                file_name = file_name,
+                file_name=file_name,
                 page_inner=inter_page
             )
             self.database_dataframe['Contents'].append(item_struct)
-        elif f_item.startswith("A020") and f_item.endswith(".txt") and not "processing_list" in root.split(os.sep):
+        if f_item.startswith("A020") and f_item.endswith(".txt") and not "processing_list" in root.split(os.sep):
             file = f_item.split('.')[0][:14]
+            # print(f_item)
             page_inner = int(f_item.split('.')[0][15:18])
+            # print(page_inner)
             item_struct = DataModelStruct.content_model(
                 name=f_item,
                 content_type='text',
@@ -197,20 +242,40 @@ class DataProcess:
             for dir_name in dirs:
                 if dir_name.startswith(search_folder_name) and dir_name.endswith("labels"):
                     labels_folder_path = os.path.join(root, dir_name)
+
                     file_name = f_item[:18] + '.txt'
                     txt_file_path = os.path.join(labels_folder_path, file_name)
                     if os.path.isfile(txt_file_path):
                         with open(txt_file_path, 'r', encoding='utf-8') as txt_file:
-                            text_content = txt_file.read()
-                            return text_content
+                            if f_item.endswith(".jpg"):
+                                text_content = self.read_file_lines_descending(txt_file, txt_file_path)
+                                return text_content
+                            else:
+                                text_content = self.read_file_lines_ascending(txt_file, txt_file_path)
+                                return text_content
         return "NULL"
 
+    def read_file_lines_ascending(self, file, file_path):
+        line_count = self.read_line_count.get(file_path, 0)  # 获取已读取行数，默认为0
+        lines = file.readlines()
+        text_content = lines[line_count].strip()  # 根据行数读取文件内容
+        self.read_line_count[file_path] = line_count + 1  # 将已读取行数加一保存
+        # 去除单引号、开头的0和空格
+        text_content = text_content.replace("'", "").lstrip("0").lstrip()
+        return text_content
+
+    def read_file_lines_descending(self, file, file_path):
+        lines = file.readlines()
+        lines.reverse()  # Reverse the order of lines
+        line_count = self.read_line_count.get(file_path, 0)  # 获取已读取行数，默认为0
+        text_content = lines[line_count].strip()  # Read the line based on line count
+        text_content = text_content.replace("'", "").lstrip("1").lstrip()
+        return text_content
 
 
 class DataSync(DataProcess):
     def create_path(self, row, root_id):
         with get_db_session_sql('predict') as session:
-
             # 判定是否为root
             if row[1] == 1:
                 record = PathInfo(
@@ -221,11 +286,12 @@ class DataSync(DataProcess):
                     create_time=datetime.datetime.now(),
                     last_update_time=datetime.datetime.now(),
                 )
+                # print(record)
                 session.add(record)
             else:
                 check_record = (
                     session.query(PathInfo)
-                    .filter(PathInfo.path_name == row[2].rsplit(os.sep, 1)[1])
+                    .filter(PathInfo.path_name == row[2].rsplit(os.sep)[-1])
                     .filter(PathInfo.depth == row[1] - 1)
                     .filter(PathInfo.abs_path == row[2].rsplit(os.sep, 1)[0])
                     .one_or_none()
@@ -310,6 +376,7 @@ class DataSync(DataProcess):
                 .one_or_none()
             )
             if check_record_file:
+
                 check_page = (
                     session.query(PageImagesInfo)
                     .filter(PageImagesInfo.father_Path == check_record_file.id)
@@ -396,7 +463,6 @@ class DataSync(DataProcess):
                     session.query(Contents)
                     .filter(Contents.name == row[0])
                     .filter(Contents.content_type == row[1])
-                    .filter(Contents.content == row[2])
                     .one_or_none()
                 )
                 if not record:
@@ -410,7 +476,7 @@ class DataSync(DataProcess):
         if self.root_path and not folder_path:
             folder_path = self.root_path
 
-        root_dir = self.root_path.rsplit(os.sep, 1)[0]
+        root_dir = self.root_path.rsplit(os.sep)[-1].replace("\\","/")
         root_data = DataModelStruct.path_model(self.root_name, 1, root_dir)
         self.database_dataframe['Paths'].append(root_data)
         try:
@@ -425,6 +491,8 @@ class DataSync(DataProcess):
         self.database_updata(root_id)
 
 
+
+
 if __name__ == "__main__":
     engine = DataSync(root)
     logging.info(f"开始同步数据")
@@ -435,8 +503,5 @@ if __name__ == "__main__":
     # pprint(engine.database_dataframe["PageImages"])
     # pprint(engine.database_dataframe['Contents'])
     # for row in engine.database_dataframe["Contents"]:
-    #     if row[0] == 'A020-00175-001-002_text_0.txt':
-    #         print(row[2])
-    #         print()
-        # print(row[0], row[1])
+    #     print(row[-2])
     # pprint(engine.path_tree)
