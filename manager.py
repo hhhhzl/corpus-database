@@ -13,7 +13,7 @@ class WebsocketIO(ServiceManager):
 
 
 class DataApi(ServiceManager):
-    name = 'data_api'
+    name = 'c1_corpus_data_api'
     file = 'data_api.py'
     dir_path = abspath('services')
 
