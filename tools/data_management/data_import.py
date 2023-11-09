@@ -8,4 +8,4 @@ def hello(file_name):
 
 if __name__ == "__main__":
     file_name = fire.Fire(hello)
-    DataController.data_import(file_name=file_name)
+    DataController.data_import(data_file=file_name)
