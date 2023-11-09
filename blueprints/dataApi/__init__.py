@@ -9,7 +9,7 @@ from flask import jsonify
 from datetime import timedelta
 from functools import update_wrapper
 
-bp = Blueprint('data_api', __name__, url_prefix='c1/data_api/api')
+bp = Blueprint('data_api', __name__, url_prefix='/c1/data_api/api')
 
 @bp.route('fetch_corpus', methods=['POST'])
 def fetch_corpus():
@@ -41,4 +41,4 @@ def fetch_subject():
         # return response
 @bp.route('test', methods=['GET'])
 def test():
-    return 'hello'
+    return SuccessDataResponse([])

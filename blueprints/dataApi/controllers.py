@@ -38,20 +38,22 @@ class DataController:
 
                 for id, row in data.iterrows():
                     # if not pd.isnull(row['trans']) and not pd.isnull(row['word']):
-                        word = CorpusDatabase(
-                            noun=row['trans'],
-                            eng_name=row['word'],
-                            create_time=datetime.datetime.now(),
-                            last_update_time=datetime.datetime.now(),
-                        )
-                        session.add(word)
+                    word = CorpusDatabase(
+                        noun=row['trans'],
+                        eng_name=row['word'],
+                        create_time=datetime.datetime.now(),
+                        last_update_time=datetime.datetime.now(),
+                    )
+                    session.add(word)
 
                 try:
                     session.commit()
                     logging.info(f"Words data saved.")
+
                 except Exception as e:
                     logging.info(f'{e}')
                     session.rollback()
+
                     raise e
 
         except:
@@ -70,9 +72,11 @@ class DataController:
 
                 try:
                     session.commit()
+
                     logging.info(f"Subjects data saved.")
                 except Exception as e:
                     session.rollback()
+
                     logging.info(f"{e}")
                     raise e
 
@@ -80,12 +84,42 @@ class DataController:
             logging.info(f"No subjects data to migrate.")
 
     @staticmethod
+    def data_import(data_file=None):
+        if data_file:
+            path = abspath('static', 'init')
+            try:
+                with get_db_session_sql('corpus') as session:
+                    data = pd.read_csv(path + data_file)
+
+                    for id, row in data.iterrows():
+                        # if not pd.isnull(row['trans']) and not pd.isnull(row['word']):
+                        word = CorpusDatabase(
+                            noun=row['trans'],
+                            eng_name=row['word'],
+                            create_time=datetime.datetime.now(),
+                            last_update_time=datetime.datetime.now(),
+                        )
+                        session.add(word)
+
+                    try:
+                        session.commit()
+                        logging.info(f"Words data saved.")
+
+                    except Exception as e:
+                        logging.info(f'{e}')
+                        session.rollback()
+                        raise e
+
+            except:
+                logging.info(f"No Words data to migrate.")
+
+    @staticmethod
     def fetch_corpus_data(page=None, location=None):
         record_per_page = 200
         if not page and not location:
             location = 0
         if not location and page:
-            location = (page-1) * record_per_page + 1
+            location = (page - 1) * record_per_page + 1
 
         with get_db_session_sql('corpus') as session:
             records = (
@@ -128,6 +162,7 @@ class DataController:
         #     ensure_ascii=False
         # )
         return data
+
 
 if __name__ == '__main__':
     Control = DataController()

@@ -20,13 +20,16 @@ def get_db_uri(CONNECTOR, USERNAME, PASSWORD, HOST, PORT, DB):
 
 
 def get_db_session_sql(db) -> Session:
-    return sessionmaker(ENGINES[db])()
+    return sessionmaker(ENGINES[db], autocommit=True)()
 
 
 DB_URI_CORPUS = get_db_uri(**MYSQL_SETTINGS["corpus"])
 
 ENGINES = {
-    "corpus": create_engine(DB_URI_CORPUS, max_overflow=-1)
+    "corpus": create_engine(DB_URI_CORPUS,
+                            max_overflow=-1,
+                            pool_pre_ping=True,
+                            pool_recycle=3600)
 }
 
 BASES = {
