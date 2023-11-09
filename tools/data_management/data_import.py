@@ -2,10 +2,10 @@ from blueprints.dataApi.controllers import DataController
 import fire
 
 
-def hello(file_name):
+def file_command(file_name):
     return file_name
 
 
 if __name__ == "__main__":
-    file_name = fire.Fire(hello)
+    file_name = fire.Fire(file_command)
     DataController.data_import(data_file=file_name)
