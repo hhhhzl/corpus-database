@@ -298,10 +298,12 @@ class DataController:
 
 
 if __name__ == '__main__':
-    # Control = DataController()
+    Control = DataController()
     # print(Control.fetch_subject_data(page=1))
-    path = abspath('static', 'init')
-    data = pd.read_csv(path + "/init_words.csv")
-    data.dropna(inplace=True)
-    # data.drop_duplicates(subset=['noun'], inplace=True)
-    print(data.shape[0])
+    print(Control.fetch_relationship_graphs(
+        group='keyword',
+        property_name='keyword_name',
+        keyword="Heat transfer",
+        number_to_show=100,
+    ))
+
