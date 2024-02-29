@@ -35,5 +35,12 @@ def chunk_list(l, chunk_size):
     return chunked_list
 
 
+def generate_random_color():
+    import random
+    # Generate a random number for each RGB component and format it as a two-digit hexadecimal
+    random_color = "#{:02X}{:02X}{:02X}".format(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+    return random_color
+
+
 if __name__ == "__main__":
     print(iso_ts())

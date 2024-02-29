@@ -1,5 +1,6 @@
 from gevent import monkey
 from gevent.pywsgi import WSGIServer
+
 monkey.patch_all()
 
 from apps import corpus_systems
@@ -9,6 +10,7 @@ from configs.management_app_config import HOST, PORT
 
 logger = get_general_logger(name='corpus_system', path=abspath('logs'))
 
+
 def main():
     app = corpus_systems.create_app()
     # app.run(debug=True, port=5001, host='0.0.0.0')
@@ -16,6 +18,7 @@ def main():
     logger.info('Corpus system data api Started.')
     logger.info(f'Host: {HOST} Port: {PORT} URL: http://{HOST}:{PORT}')
     http_server.serve_forever()
+
 
 if __name__ == '__main__':
     main()

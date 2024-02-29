@@ -1,11 +1,12 @@
 from email.policy import default
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, Numeric, ForeignKey
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, Numeric, ForeignKey, Text
 from sqlalchemy import inspect, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from configs.mysql_config import ENGINES, BASES, get_db_session_sql
 # from configs.postgres_config import ENGINES, BASES, get_db_session
 from blueprints.dataApi.serializer import Serializer
+
 
 class FileInfo(BASES['corpus']):
     __tablename__ = "FileInfo"
@@ -33,12 +34,12 @@ class CorpusDatabase(BASES['corpus'], Serializer):
     id = Column(Integer, autoincrement=True, primary_key=True)
     noun = Column(String(1000), nullable=False)
     eng_name = Column(String(1000), nullable=False)
-    attributes = Column(String(100), nullable=True)
+    attributes = Column(Text, nullable=True)
     abb = Column(String(200), nullable=True)
-    synonyms = Column(String(1000), nullable=True)
-    synonym = Column(String(1000), nullable=True)
-    hypernym = Column(String(1000), nullable=True)
-    hyponym = Column(String(1000), nullable=True)
+    synonyms = Column(Text, nullable=True)
+    synonym = Column(Text, nullable=True)
+    hypernym = Column(Text, nullable=True)
+    hyponym = Column(Text, nullable=True)
     create_time = Column(DateTime)
     last_update_time = Column(DateTime)
 
@@ -59,8 +60,11 @@ class CorpusDatabase(BASES['corpus'], Serializer):
 class CorpusSubjects(BASES['corpus']):
     __tablename__ = "Subjects"
 
-    id = Column(Integer, autoincrement=True, primary_key=True)
-    subject_name = Column(String(50))
+    id = Column(Integer, primary_key=True)
+    subject_name = Column(Text)
+    subject_chinese = Column(Text)
+    subject_abb = Column(Text)
+    father_subject = Column(Integer)
     create_time = Column(DateTime)
     last_update_time = Column(DateTime)
 
@@ -110,10 +114,10 @@ class CorpusHistory(BASES['corpus']):
     __tablename__ = "CorpusHistory"
 
     id = Column(Integer, autoincrement=True, primary_key=True)
-    noun = Column(String(100))
-    eng_name = Column(String(100))
-    abb = Column(String(20))
-    subject = Column(String(20))
+    noun = Column(Text)
+    eng_name = Column(Text)
+    abb = Column(Text)
+    subject = Column(Text)
     create_time = Column(DateTime)
     category = Column(String(1))
 
